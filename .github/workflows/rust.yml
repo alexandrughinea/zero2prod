@@ -18,9 +18,11 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Set up Rust
-      uses: actions/setup-rust@v1
+      uses: actions-rs/toolchain@v1
       with:
-        rust-version: stable
+        profile: minimal
+        toolchain: stable
+        components: clippy
 
     - name: Format code
       run: cargo fmt --all -- --check
