@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use std::net::TcpListener;
 use zero2prod::run;
 
