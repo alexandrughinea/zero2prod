@@ -28,15 +28,18 @@ DB_PORT="${POSTGRES_PORT:=5432}"
 # Check if a custom database host has been set, otherwise default to "localhost".
 DB_HOST="${POSTGRES_HOST:=localhost}"
 
-#Launch postgres with Docker
-
-docker run \
+# Allow to skip Docker if a dockerized postgres database is already running
+if [[ -z "${SKIP_DOCKER}" ]]
+then
+  #Launch postgres with Docker
+  docker run \
   -e POSTGRES_USER=${DB_USER} \
   -e POSTGRES_PASSWORD=${DB_PASSWORD} \
   -e POSTGRES_DB=${DB_NAME} \
   -p "${DB_PORT}":5432 \
   -d postgres \
   postgres -N 1000
+fi
 
 #Keep pinging postgres until it is ready to accept commands
 export PGPASSWORD="${DB_PASSWORD}"
@@ -50,3 +53,8 @@ echo "Postgres is up and running on port #{DB_PORT}"
 DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 export DATABASE_URL
 sqlx database create
+
+echo "Running migrations now"
+sqlx migrate run
+
+echo "Postgres has been migrated, all good!"
