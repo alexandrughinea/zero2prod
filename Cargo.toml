@@ -16,7 +16,6 @@ features = ["runtime-tokio-rustls", "macros", "postgres", "uuid", "chrono", "mig
 [dev-dependencies]
 reqwest = "0.12"
 
-
 [lib]
 path = "src/lib.rs"
 
