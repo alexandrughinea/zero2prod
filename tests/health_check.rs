@@ -1,23 +1,37 @@
-use sqlx::{Connection, PgConnection};
+use sqlx::{Connection, PgConnection, PgPool};
 use std::net::TcpListener;
 use zero2prod::configuration::get_configuration;
 use zero2prod::startup::run;
 
-pub fn spawn_app() -> String {
+pub struct TestApp {
+    pub address: String,
+    pub db_pool: PgPool,
+}
+
+async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to random port.");
     let port = listener.local_addr().unwrap().port();
+    let address = format!("http://127.0.0.1:{}", port);
 
-    let server = run(listener).expect("Failed to bind address.");
+    let configuration = get_configuration().expect("Failed to read configuration.");
+    let connection_pool = PgPool::connect(&configuration.database.connection_string())
+        .await
+        .expect("Failed to connect to Postgres.");
+
+    let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
     let _ = tokio::spawn(server);
 
-    format!("http://127.0.0.1:{}", port)
+    TestApp {
+        address,
+        db_pool: connection_pool,
+    }
 }
 
 #[tokio::test]
 async fn health_check_works() {
-    let address = spawn_app();
+    let app = spawn_app().await;
     let client = reqwest::Client::new();
-    let request_url = format!("{}/health_check", &address);
+    let request_url = format!("{}/health_check", &app.address);
 
     let response = client
         .get(&request_url)
@@ -31,14 +45,14 @@ async fn health_check_works() {
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
-    let address = spawn_app();
+    let app = spawn_app().await;
     let configuration = get_configuration().expect("Failed to read configuration");
     let mut connection = PgConnection::connect(&configuration.database.connection_string())
         .await
         .expect("Failed to connect to Postgres.");
 
     let client = reqwest::Client::new();
-    let request_url = format!("{}/subscriptions", &address);
+    let request_url = format!("{}/subscriptions", &app.address);
     let request_body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
 
     let response = client
@@ -62,9 +76,10 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
-    let address = spawn_app();
+    let app = spawn_app().await;
     let client = reqwest::Client::new();
-    let request_url = format!("{}/subscriptions", &address);
+
+    let request_url = format!("{}/subscriptions", &app.address);
 
     let test_cases = vec![
         ("name=le%20", "missing email"),
