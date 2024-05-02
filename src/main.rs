@@ -3,11 +3,14 @@ use std::net::TcpListener;
 use env_logger::Env;
 use sqlx::PgPool;
 
-use zero2prod::configuration::get_configuration;
+use zero2prod::configuration::{get_configuration, get_subscriber, init_subscriber};
 use zero2prod::startup::run;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
+    let subscriber = get_subscriber("zero2prod".into(), "info".into(), std::io::stdout);
+    init_subscriber(subscriber);
+
     // We are falling back to printing all logs at info-level or above
     // if the RUST_LOG environment variable has not been set.
     env_logger::Builder::from_env(Env::default().default_filter_or("trace")).init();
