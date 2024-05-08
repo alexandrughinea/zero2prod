@@ -98,10 +98,9 @@ async fn health_check_works() {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_app().await;
     let configuration = get_configuration().expect("Failed to read configuration");
-    let mut connection =
-        PgConnection::connect(&configuration.database.connection_string().expose_secret())
-            .await
-            .expect("Failed to connect to Postgres.");
+    let mut connection = PgConnection::connect_with(&configuration.database.with_db())
+        .await
+        .expect("Failed to connect to Postgres.");
 
     let client = reqwest::Client::new();
     let request_url = format!("{}/subscriptions", &app.address);
@@ -139,7 +138,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
         ("", "missing both name and email"),
     ];
 
-    for (invalid_body, error_message) in test_cases {
+    for (invalid_body, _error_message) in test_cases {
         let response = client
             .post(&request_url)
             .header("Content-Type", "application/x-www-form-urlencoded")
