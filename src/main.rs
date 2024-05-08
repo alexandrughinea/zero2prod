@@ -10,8 +10,7 @@ async fn main() -> Result<(), std::io::Error> {
     let subscriber = get_subscriber("zero2prod".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 
-    // We are falling back to printing all logs at info-level or above
-    // if the RUST_LOG environment variable has not been set.
+    // We are falling back to printing all logs at info-level or above if the RUST_LOG environment variable has not been set.
     let configuration = get_configuration().expect("Failed to read configuration.");
     let connection_pool = PgPool::connect_lazy_with(configuration.database.with_db());
     let address = format!(
