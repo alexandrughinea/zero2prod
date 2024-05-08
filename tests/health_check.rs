@@ -48,18 +48,10 @@ async fn spawn_app() -> TestApp {
 pub async fn configure_database() -> PgPool {
     let mut configuration = get_configuration().expect("Failed to read configuration.");
 
-    // For each new test run create a new random db name
-    configuration.database.database_name = Uuid::new_v4().to_string();
-
     // Connect without a logical database name
-    let mut connection = PgConnection::connect(
-        &configuration
-            .database
-            .connection_string_without_db()
-            .expose_secret(),
-    )
-    .await
-    .expect("Failed to connect to Postgres");
+    let mut connection = PgConnection::connect_with(&configuration.database.without_db())
+        .await
+        .expect("Failed to connect to Postgres");
 
     // Create database
     connection
@@ -74,10 +66,9 @@ pub async fn configure_database() -> PgPool {
         .expect("Failed to create database.");
 
     // Migrate database
-    let connection_pool =
-        PgPool::connect(&configuration.database.connection_string().expose_secret())
-            .await
-            .expect("Failed to connect to Postgres.");
+    let connection_pool = PgPool::connect_with(configuration.database.with_db())
+        .await
+        .expect("Failed to connect to Postgres.");
 
     sqlx::migrate!("./migrations")
         .run(&connection_pool)
