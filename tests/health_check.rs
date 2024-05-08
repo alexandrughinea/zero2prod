@@ -48,6 +48,9 @@ async fn spawn_app() -> TestApp {
 pub async fn configure_database() -> PgPool {
     let mut configuration = get_configuration().expect("Failed to read configuration.");
 
+    // For each new test run create a new random db name
+    configuration.database.database_name = Uuid::new_v4().to_string();
+
     // Create database
     let mut connection = PgConnection::connect_with(&configuration.database.without_db())
         .await
