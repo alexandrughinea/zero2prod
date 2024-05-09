@@ -20,13 +20,10 @@ impl AsRef<str> for SubscriberEmail {
 
 #[cfg(test)]
 mod tests {
-    // We are importing the `SafeEmail` faker!
-    // We also need the `Fake` trait to get access to the // `.fake` method on `SafeEmail`
     use crate::domain::SubscriberEmail;
     use fake::faker::internet::en::SafeEmail;
     use fake::Fake;
 
-    // [...]
     #[test]
     fn valid_emails_are_parsed_successfully() {
         let email = SafeEmail().fake();
