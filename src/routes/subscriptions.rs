@@ -30,7 +30,7 @@ pub async fn subscriptions(
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(form, connection_pool)
+    skip(connection_pool, form)
 )]
 pub async fn insert_subscriber(
     connection_pool: &PgPool,
