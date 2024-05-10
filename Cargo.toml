@@ -22,8 +22,6 @@ unicode-segmentation = "1.11.0"
 claims = "0.7.1"
 validator = "0.18.1"
 
-
-
 [dependencies.reqwest]
 version = "0.12.4"
 default-features = false
@@ -38,6 +36,7 @@ features = ["runtime-tokio-rustls", "macros", "postgres", "uuid", "chrono", "mig
 fake = "2.9.2"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
+wiremock = "0.6.0"
 
 [lib]
 path = "src/lib.rs"
