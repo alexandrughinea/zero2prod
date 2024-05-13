@@ -39,12 +39,12 @@ async fn spawn_app() -> TestApp {
         .email_client
         .sender()
         .expect("Invalid sender email address.");
-    configuration.database.database_name = Uuid::new_v4().to_string();
     let email_client = EmailClient::new(
         configuration.email_client.base_url,
         sender_email,
         configuration.email_client.authorization_token,
     );
+    configuration.database.database_name = Uuid::new_v4().to_string();
     let connection_pool = configure_database().await;
 
     let server =
