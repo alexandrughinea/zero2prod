@@ -35,6 +35,8 @@ async fn spawn_app() -> TestApp {
     let address = format!("http://127.0.0.1:{}", port);
 
     let mut configuration = get_configuration().expect("Failed to read configuration.");
+    let timeout = configuration.email_client.timeout();
+
     let sender_email = configuration
         .email_client
         .sender()
@@ -43,6 +45,7 @@ async fn spawn_app() -> TestApp {
         configuration.email_client.base_url,
         sender_email,
         configuration.email_client.authorization_token,
+        timeout,
     );
     configuration.database.database_name = Uuid::new_v4().to_string();
     let connection_pool = configure_database().await;

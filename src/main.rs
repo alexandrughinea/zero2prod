@@ -14,6 +14,7 @@ async fn main() -> Result<(), std::io::Error> {
     let configuration = get_configuration().expect("Failed to read configuration.");
 
     // Build an `EmailClient` using `configuration`
+    let timeout = configuration.email_client.timeout();
     let sender_email = configuration
         .email_client
         .sender()
@@ -22,6 +23,7 @@ async fn main() -> Result<(), std::io::Error> {
         configuration.email_client.base_url,
         sender_email,
         configuration.email_client.authorization_token,
+        timeout,
     );
 
     // We are falling back to printing all logs at info-level or above
