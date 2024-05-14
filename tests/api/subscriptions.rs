@@ -1,22 +1,17 @@
-use crate::helpers::spawn_app;
-use sqlx::{Connection, PgConnection};
 use zero2prod::configuration::get_configuration;
+
+use crate::helpers::spawn_app;
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_app().await;
-    let configuration = get_configuration().expect("Failed to read configuration");
-    let mut connection = PgConnection::connect_with(&configuration.database.with_db())
-        .await
-        .expect("Failed to connect to Postgres.");
-
-    let request_body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
-    let response = app.post_subscriptions(request_body.into()).await;
+    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+    let response = app.post_subscriptions(body.into()).await;
 
     assert_eq!(response.status().as_u16(), 200);
 
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&mut connection)
+        .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscriptions.");
 
