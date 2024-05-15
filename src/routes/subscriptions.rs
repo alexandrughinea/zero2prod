@@ -46,14 +46,20 @@ pub async fn subscriptions(
         return HttpResponse::InternalServerError().finish();
     }
 
-    // Send a (useless) email to the new subscriber.
-    // We are ignoring email delivery errors for now.
+    let confirmation_link = "https://there-is-no-such-domain.com/subscriptions/confirm";
     if email_client
         .send_email(
             new_subscriber.email,
             "Welcome!",
-            "Welcome to our newsletter!",
-            "Welcome to our newsletter!",
+            &format!(
+                "Welcome to our newsletter!<br />\
+                Click <a href=\"{}\">here</a> to confirm your subscription.",
+                confirmation_link
+            ),
+            &format!(
+                "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+                confirmation_link
+            ),
         )
         .await
         .is_err()

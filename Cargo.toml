@@ -22,6 +22,7 @@ secrecy = { version = "0.8", features = ["serde"] }
 unicode-segmentation = "1.11.0"
 claims = "0.7.1"
 validator = "0.18.1"
+linkify = "0.10.0"
 
 [dependencies.reqwest]
 version = "0.12.4"
