@@ -4,6 +4,7 @@ use chrono::Utc;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use sqlx::{Executor, PgPool, Postgres, Transaction};
+use std::error::Error;
 use std::fmt::Formatter;
 use uuid::Uuid;
 
@@ -17,6 +18,11 @@ pub struct StoreTokenError(sqlx::Error);
 pub enum SubscribeError {
     #[error("{0}")]
     ValidationError(String),
+
+    // Transparent delegates both `Display`'s and `source`'s implementation // to the type wrapped by `UnexpectedError`.
+    #[error(transparent)]
+    UnexpectedError(#[from] Box<dyn Error>),
+
     #[error("Failed to acquire a Postgres connection from the pool")]
     PoolError(#[source] sqlx::Error),
     #[error("Failed to insert new subscriber in the database.")]
@@ -29,8 +35,8 @@ pub enum SubscribeError {
     SendEmailError(#[from] reqwest::Error),
 }
 
-impl std::error::Error for StoreTokenError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl Error for StoreTokenError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         // The compiler transparently casts `&sqlx::Error` into a `&dyn Error`
         Some(&self.0)
     }
@@ -90,6 +96,7 @@ impl ResponseError for SubscribeError {
     fn status_code(&self) -> StatusCode {
         match self {
             SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST,
+            SubscribeError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             SubscribeError::PoolError(_)
             | SubscribeError::TransactionCommitError(_)
             | SubscribeError::InsertSubscriberError(_)
@@ -117,21 +124,22 @@ pub async fn subscribe(
     let mut transaction = connection_pool
         .begin()
         .await
-        .map_err(SubscribeError::PoolError)?;
+        .map_err(|e| SubscribeError::UnexpectedError(Box::new(e)))?;
 
     let subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
         .await
-        .map_err(SubscribeError::InsertSubscriberError)?;
+        .map_err(|e| SubscribeError::UnexpectedError(Box::new(e)))?;
+
     let subscription_token = generate_subscription_token();
 
     store_token(&mut transaction, subscriber_id, &subscription_token)
         .await
-        .map_err(SubscribeError::StoreTokenError)?;
+        .map_err(|e| SubscribeError::UnexpectedError(Box::new(e)))?;
 
     transaction
         .commit()
         .await
-        .map_err(SubscribeError::TransactionCommitError)?;
+        .map_err(|e| SubscribeError::UnexpectedError(Box::new(e)))?;
 
     send_confirmation_email(
         &email_client,
@@ -139,7 +147,9 @@ pub async fn subscribe(
         &application_base_url.0,
         &subscription_token,
     )
-    .await?;
+    .await
+    .map_err(|e| SubscribeError::UnexpectedError(Box::new(e)))?;
+
     Ok(HttpResponse::Ok().finish())
 }
 
