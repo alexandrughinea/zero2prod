@@ -75,7 +75,7 @@ impl EmailClient {
 mod tests {
     use std::time::Duration;
 
-    use claims::assert_err;
+    use claims::{assert_err, assert_ok};
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::{Fake, Faker};
@@ -138,7 +138,7 @@ mod tests {
             .and(header("Content-Type", "application/json"))
             .and(path("/email"))
             .and(method("POST"))
-            .and(SendEmailBodyMatcher) // Use our custom matcher!
+            .and(SendEmailBodyMatcher)
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)
@@ -148,11 +148,31 @@ mod tests {
         let _ = email_client
             .send_email(email(), &subject(), &content(), &content())
             .await;
-        // Assert
+
+        // Assert: happens automatically at end of scope / on drop
     }
 
     #[tokio::test]
-    async fn send_email_fails_if_the_server_returns_500() {
+    async fn send_email_succeeds_if_the_server_returns_200() {
+        // Arrange
+        let mock_server = MockServer::start().await;
+        let email_client = email_client(mock_server.uri());
+
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
+            .await;
+
+        assert_ok!(outcome);
+    }
+
+    #[tokio::test]
+    async fn send_email_fails_if_server_returns_500() {
         // Arrange
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
@@ -162,20 +182,21 @@ mod tests {
             .expect(1)
             .mount(&mock_server)
             .await;
-        // Act
+
         let outcome = email_client
             .send_email(email(), &subject(), &content(), &content())
             .await;
-        // Assert
+
         assert_err!(outcome);
     }
 
     #[tokio::test]
-    async fn send_email_times_out_if_the_server_takes_too_long() {
+    async fn send_email_times_out_if_server_takes_too_long() {
         // Arrange
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
-        let response = ResponseTemplate::new(200).set_delay(timeout());
+
+        let response = ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(180));
 
         Mock::given(any())
             .respond_with(response)
@@ -183,12 +204,10 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        // Act
         let outcome = email_client
             .send_email(email(), &subject(), &content(), &content())
             .await;
 
-        // Assert
         assert_err!(outcome);
     }
 }
