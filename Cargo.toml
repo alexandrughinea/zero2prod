@@ -45,13 +45,13 @@ actix-web-lab = "0.20.2"
 # The feature is not enabled by default to avoid pulling in
 # unnecessary dependencies for projects that do not need it.
 serde = { version = "1", features = ["derive"]}
-serde-aux = "3"
+serde-aux = "4.5.0"
 thiserror = "1"
 anyhow = "1"
 
 # Using table-like toml syntax to avoid a super-long line!
 [dependencies.sqlx]
-version = "0.6.3"
+version = "0.6"
 default-features = false
 features = [
     "runtime-tokio-rustls",
